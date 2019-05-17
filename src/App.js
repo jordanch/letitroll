@@ -1,26 +1,38 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useState } from "react"
+import Artists from "./components/Artists"
+import artists from "./data/artists.json"
+import InitArtistUtil from "./util/artist.util"
+import storageUtil from "./util/localstorage.util"
+import Player from "./components/Player"
+
+// data setup
+const cached = storageUtil.getArtists()
+
+const map = cached.artists.reduce(
+  (acc, curr) => Object.assign(acc, { [curr.id]: curr }),
+  {}
+)
+
+const artistData = artists.map((artist) =>
+  Object.assign(artist, {
+    util: InitArtistUtil({ artist, storage: storageUtil }),
+    rating: map[artist.id] && map[artist.id].rating
+  })
+)
 
 function App() {
+  const [selectedArtist, changeSelectedArtist] = useState()
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <Artists
+        artists={artistData}
+        storageUtil={storageUtil}
+        changeSelectedArtist={changeSelectedArtist}
+      />
+      <Player selected={selectedArtist} artists={artistData} />
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
