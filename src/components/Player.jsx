@@ -5,8 +5,10 @@ import Card from "@material-ui/core/Card"
 import IconButton from "@material-ui/core/IconButton"
 import SkipPreviousIcon from "@material-ui/icons/SkipPrevious"
 import PlayArrowIcon from "@material-ui/icons/PlayArrow"
+import PauseIcon from "@material-ui/icons/Pause"
 import SkipNextIcon from "@material-ui/icons/SkipNext"
 import YTSearch from "youtube-api-search"
+import YouTube from "react-youtube"
 const API_KEY = "AIzaSyCT5YNj0WpEUrt_4K8b3GZ6NoBZTOImXMA"
 
 const styles = (theme) => ({
@@ -32,6 +34,10 @@ const styles = (theme) => ({
   playIcon: {
     height: 38,
     width: 38
+  },
+  pauseIcon: {
+    height: 38,
+    width: 38
   }
 })
 
@@ -39,31 +45,54 @@ function Player(props) {
   // todo: look at changing artist data from array to object. in a couple
   // places it is reduces to an object for quick look. perhaps the main data
   // type should be an object, then for rendering an array.
-  const NONE_SELECTED_KEY = "no artist selected"
   const { classes, theme, selected = {}, artists } = props
-  const { name = NONE_SELECTED_KEY } = selected
+  const { name } = selected
   const artistsMap = artists.reduce(
     (acc, curr) => Object.assign(acc, { [curr.id]: curr }),
     {}
   )
 
   const [videos, setVideos] = useState()
-  // maintain component internal state to diff the selected artist
+  const [selectedVideoIndex, setSelectedVideosIndex] = useState()
   const [artist, setArtist] = useState()
+  const [playing, setPlaying] = useState(false)
 
-  debugger
-  if (!artist || artist !== name) {
-    debugger
-    return setArtist(name)
+  const togglePlaying = () => setPlaying(!playing)
+
+  const nextVideo = () => {
+    if (selectedVideoIndex + 1 < videos.length) {
+      setSelectedVideosIndex(selectedVideoIndex + 1)
+    }
   }
 
-  debugger
-  if (artist !== NONE_SELECTED_KEY && artist !== name) {
-    YTSearch({ key: API_KEY, term: name || "" }, (vids) => {
-      debugger
-      setVideos(vids)
-      console.log(vids)
-    })
+  const prevVideo = () => {
+    if (selectedVideoIndex - 1 >= 0) {
+      setSelectedVideosIndex(selectedVideoIndex - 1)
+    }
+  }
+
+  const getVideoToPlay = () => {
+    if (videos && videos.length) {
+      const {
+        id: { videoId }
+      } = videos[selectedVideoIndex]
+
+      return videoId
+    }
+
+    return ""
+  }
+
+  if (artist !== name) {
+    if (name) {
+      YTSearch({ key: API_KEY, term: name }, (vids) => {
+        setVideos(vids)
+        console.log(vids)
+
+        setSelectedVideosIndex(0)
+      })
+    }
+    setArtist(name)
   }
 
   return (
@@ -71,17 +100,23 @@ function Player(props) {
       <Card className={classes.card}>
         <div className={classes.details}>
           <div className={classes.controls}>
-            <IconButton aria-label="Previous">
+            <IconButton aria-label="Previous" onClick={prevVideo}>
               {theme.direction === "rtl" ? (
                 <SkipNextIcon />
               ) : (
                 <SkipPreviousIcon />
               )}
             </IconButton>
-            <IconButton aria-label="Play/pause">
-              <PlayArrowIcon className={classes.playIcon} />
-            </IconButton>
-            <IconButton aria-label="Next">
+            {!playing ? (
+              <IconButton aria-label="Play" onClick={togglePlaying}>
+                <PlayArrowIcon className={classes.playIcon} />
+              </IconButton>
+            ) : (
+              <IconButton aria-label="Pause" onClick={togglePlaying}>
+                <PauseIcon className={classes.pauseIcon} />
+              </IconButton>
+            )}
+            <IconButton aria-label="Next" onClick={nextVideo}>
               {theme.direction === "rtl" ? (
                 <SkipPreviousIcon />
               ) : (
@@ -91,7 +126,14 @@ function Player(props) {
           </div>
         </div>
       </Card>
-      {name}
+      {name || "no artist selected"}
+      {selectedVideoIndex}
+      {playing && (
+        <YouTube
+          videoId={getVideoToPlay()}
+          opts={{ height: "0", width: "0", playerVars: { autoplay: 1 } }}
+        />
+      )}
     </Fragment>
   )
 }
